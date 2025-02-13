@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat</title>
+    <script>
+        function getCSRFToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]').value;
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            document.getElementById("chat-form").onsubmit = async function (event) {
+                event.preventDefault();
+                let userMessage = document.getElementById("message").value;
+                let csrfToken = getCSRFToken();
+
+                let response = await fetch("/chat_api/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "X-CSRFToken": csrfToken
+                    },
+                    body: new URLSearchParams({ message: userMessage, session_id: "test_session" })
+                });
+
+                let data = await response.json();
+                document.getElementById("chat-box").innerHTML += `<p><strong>You:</strong> ${userMessage}</p>`;
+                document.getElementById("chat-box").innerHTML += `<p><strong>AI:</strong> ${data.response}</p>`;
+                document.getElementById("message").value = "";
+            };
+        });
+    </script>
+</head>
+<body>
+    <h1>Chat Interface</h1>
+
+    {% if extracted_text %}
+        <h3>Extracted Text from PDF:</h3>
+        <p>{{ extracted_text }}</p>
+    {% endif %}
+
+    {% if ai_response %}
+        <h3>AI Response:</h3>
+        <p>{{ ai_response }}</p>
+    {% endif %}
+
+    <form id="chat-form">
+        {% csrf_token %}
+        <input type="text" id="message" placeholder="Type a message..." required>
+        <button type="submit">Send</button>
+    </form>
+
+    <div id="chat-box"></div>
+</body>
+</html>

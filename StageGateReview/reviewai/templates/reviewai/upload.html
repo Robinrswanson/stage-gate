@@ -1,0 +1,11 @@
+{% extends "reviewai/base.html" %}
+
+{% block content %}
+<h2>Upload Pitch PDF</h2>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="file" name="file">
+    <button type="submit">Upload</button>
+</form>
+<a href="{% url 'chat' %}">Start Chat Without File</a>
+{% endblock %}
