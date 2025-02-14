@@ -1,54 +1,79 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Chat</title>
-    <script>
-        function getCSRFToken() {
-            return document.querySelector('[name=csrfmiddlewaretoken]').value;
-        }
+{% extends "reviewai/base.html" %}
 
-        document.addEventListener("DOMContentLoaded", function () {
-            document.getElementById("chat-form").onsubmit = async function (event) {
-                event.preventDefault();
-                let userMessage = document.getElementById("message").value;
-                let csrfToken = getCSRFToken();
+{% block content %}
+<div class="flex flex-col h-screen bg-gray-900 text-white w-full md:w-1/2 mx-auto">
+    <!-- Chat Header -->
+    <div class="p-4 flex justify-between items-center border-b border-gray-700">
+        <a href="{% url 'home' %}" class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition duration-300">
+            Home
+        </a>
+        <div class="text-center text-2xl font-bold flex-grow">Stage-Gate AI Review</div>
+    </div>
 
-                let response = await fetch("/chat_api/", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/x-www-form-urlencoded",
-                        "X-CSRFToken": csrfToken
-                    },
-                    body: new URLSearchParams({ message: userMessage, session_id: "test_session" })
-                });
+    <!-- Chat Container -->
+    <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4">
+        <!-- Show AI's initial response -->
+        {% if ai_response %}
+        <div class="flex justify-start">
+            <div class="max-w-xs md:max-w-md p-3 rounded-lg bg-gray-700 text-white">
+                <strong>AI:</strong> {{ ai_response }}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% for message in chat_messages %}
+            <div class="flex {% if message.role == 'user' %}justify-end{% else %}justify-start{% endif %}">
+                <div class="max-w-xs md:max-w-md p-3 rounded-lg {% if message.role == 'user' %}bg-[#10a37f] text-white{% else %}bg-gray-700 text-white{% endif %}">
+                    <strong>{% if message.role == 'user' %}You{% else %}AI{% endif %}:</strong> {{ message.content }}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
 
-                let data = await response.json();
-                document.getElementById("chat-box").innerHTML += `<p><strong>You:</strong> ${userMessage}</p>`;
-                document.getElementById("chat-box").innerHTML += `<p><strong>AI:</strong> ${data.response}</p>`;
-                document.getElementById("message").value = "";
-            };
-        });
-    </script>
-</head>
-<body>
-    <h1>Chat Interface</h1>
-
-    {% if extracted_text %}
-        <h3>Extracted Text from PDF:</h3>
-        <p>{{ extracted_text }}</p>
-    {% endif %}
-
-    {% if ai_response %}
-        <h3>AI Response:</h3>
-        <p>{{ ai_response }}</p>
-    {% endif %}
-
-    <form id="chat-form">
+    <!-- Chat Input -->
+    <form id="chat-form" class="p-4 border-t border-gray-700 flex items-center">
         {% csrf_token %}
-        <input type="text" id="message" placeholder="Type a message..." required>
-        <button type="submit">Send</button>
+        <input type="text" id="message" placeholder="Type a message..." 
+            class="flex-1 p-3 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-[#10a37f]" required>
+        <button type="submit" class="ml-3 px-5 py-2 bg-[#10a37f] text-white rounded-lg hover:bg-[#1a7f64] transition duration-300">
+            Send
+        </button>
     </form>
+</div>
 
-    <div id="chat-box"></div>
-</body>
-</html>
+<script>
+    function getCSRFToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("chat-form").onsubmit = async function (event) {
+            event.preventDefault();
+            let userMessage = document.getElementById("message").value;
+            let csrfToken = getCSRFToken();
+
+            let response = await fetch("/chat_api/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "X-CSRFToken": csrfToken
+                },
+                body: new URLSearchParams({ message: userMessage })
+            });
+
+            let data = await response.json();
+
+            let chatBox = document.getElementById("chat-box");
+
+            // Append user message
+            chatBox.innerHTML += `<div class="flex justify-end"><div class="max-w-md p-3 rounded-lg bg-[#10a37f] text-white">You: ${userMessage}</div></div>`;
+
+            // Append AI response
+            chatBox.innerHTML += `<div class="flex justify-start"><div class="max-w-md p-3 rounded-lg bg-gray-700 text-white">AI: ${data.response}</div></div>`;
+
+            chatBox.scrollTop = chatBox.scrollHeight;
+            document.getElementById("message").value = "";
+        };
+    });
+</script>
+{% endblock %}

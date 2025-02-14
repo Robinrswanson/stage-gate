@@ -5,14 +5,17 @@ import fitz
 import os
 import google.generativeai as genai
 
-# Set your Gemini API key
+# Configure Gemini API
 os.environ["GOOGLE_API_KEY"] = os.getenv('GOOGLE_API_KEY')
-genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))  # Configure Gemini
+genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
 
 with open("reviewai/instructions.txt", "r", encoding="utf-8") as f:
     instructions = f.read()
 
-model = genai.GenerativeModel("models/gemini-2.0-flash", system_instruction=instructions) # Pass instructions here
+model = genai.GenerativeModel("models/gemini-2.0-flash", system_instruction=instructions)
+
+# Global variable for chat session
+curr_chat = None  # Initialized as None
 
 
 def extract_text_from_pdf(pdf_path):
@@ -21,69 +24,62 @@ def extract_text_from_pdf(pdf_path):
     text = "\n".join([page.get_text() for page in doc])
     return text
 
+
 def home(request):
     if request.method == 'POST' and request.FILES.get('file'):
         file = request.FILES['file']
         uploaded_file = FileUpload.objects.create(file=file)
-        
-        # Extract text and save it to the database
-        pdf_path = uploaded_file.file.path  # Get the saved file path
+
+        # Extract text from PDF
+        pdf_path = uploaded_file.file.path
         extracted_text = extract_text_from_pdf(pdf_path)
         uploaded_file.extracted_text = extracted_text
         uploaded_file.save()
 
-        # Store extracted text in session
+        # Store extracted text for chat
         request.session['extracted_text'] = extracted_text
-
-        # # Send extracted text to GPT API
-        # response = client.chat.completions.create(
-        #     model="gpt-4",
-        #     messages=[{"role": "user", "content": extracted_text}]
-        # )
-
-        # # Save AI response in session to display in chat
-        # ai_response = response.choices[0].message.content
-
-        ai_response = "This is a placeholder response from the AI."
-
-        request.session['ai_response'] = ai_response
 
         return redirect('chat')
 
     return render(request, 'reviewai/upload.html')
 
+
 def chat(request):
+    """Opens a new chat session every time the page is loaded."""
     extracted_text = request.session.pop('extracted_text', None)
-    ai_response = request.session.pop('ai_response', None)
-    return render(request, 'reviewai/chat.html', {'extracted_text': extracted_text, 'ai_response': ai_response})
+
+    # Start a fresh chat every time the chat page is opened
+    global curr_chat
+    curr_chat = model.start_chat()
+
+    # Determine AI's initial message
+    if extracted_text:
+        # Generate a summarized report from the PDF
+        ai_prompt = f"Here is the pdf containting the business idea:\n\n{extracted_text}. Please give a brief introudction the generate an initial PREP report giving details where possible."
+    else:
+        ai_prompt = "Please give a brief introudction of youself and then proceed with part 1."
+    response = curr_chat.send_message(ai_prompt)
+
+    request.session['ai_response'] = response.text
+
+    return render(request, 'reviewai/chat.html', {
+        'ai_response': response.text,
+    })
+
+
 
 def chat_api(request):
+    """Handles chat messages, but does NOT persist chat history."""
     if request.method == 'POST':
         user_input = request.POST.get('message')
-        session_id = request.POST.get('session_id')
-        requirements_document = request.POST.get('requirements_document')  # Get the requirements document
-        pdf_uploaded = request.POST.get('pdf_uploaded') == 'true' # Check if a pdf was uploaded
 
-        latest_file = FileUpload.objects.last()
-        file_text = latest_file.extracted_text if latest_file else ""
+        global curr_chat
+        if curr_chat is None:
+            curr_chat = model.start_chat()  # Ensure chat exists
 
-        ChatMessage.objects.create(content=user_input, is_user=True, session_id=session_id)
-        chat = model.start_chat()
-
-        if pdf_uploaded:
-            prompt = f"""
-                PDF Content:
-                {file_text}
-                """
-        else:
-            prompt = f"""
-                No file provided.
-                """
-
-        response = chat.send_message(prompt)
-
+        response = curr_chat.send_message(user_input)
         ai_response = response.text if response and response.text else "Error generating response."
 
-        ChatMessage.objects.create(content=ai_response, is_user=False, session_id=session_id)
-
         return JsonResponse({'response': ai_response})
+
+    return JsonResponse({'error': 'Invalid request'}, status=400)
