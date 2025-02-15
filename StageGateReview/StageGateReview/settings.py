@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 import environ
+from django.utils.translation import gettext_lazy as _
+import os
 
 env = environ.Env()
 environ.Env.read_env()
@@ -42,11 +44,13 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "reviewai",
+    "rosetta",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    'django.middleware.locale.LocaleMiddleware',
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -67,6 +71,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "django.template.context_processors.i18n",
             ],
         },
     },
@@ -108,11 +113,17 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGES = [
+    ('en', _('English')),
+    ('ja', _('Japanese')),
+]
 
-TIME_ZONE = "UTC"
+LANGUAGE_CODE = "ja"
 
 USE_I18N = True
+USE_L10N = True
+
+TIME_ZONE = "GMT"
 
 USE_TZ = True
 
@@ -122,6 +133,9 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
+LOCALE_PATHS = [
+    os.path.join(BASE_DIR, 'locale'),
+]
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 

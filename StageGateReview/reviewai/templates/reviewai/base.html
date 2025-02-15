@@ -1,9 +1,11 @@
+{% load i18n %}
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ request.LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stage-Gate AI Review</title>
+    <title>{% trans "Stage-Gate AI Review" %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -14,6 +16,19 @@
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
+    <form class="absolute top-4 right-4">
+        <select id="language-select" class="bg-gray-800 text-white px-3 py-2 rounded-lg">
+            <option value="/en" {% if request.LANGUAGE_CODE == 'en' %}selected{% endif %}>English</option>
+            <option value="/ja" {% if request.LANGUAGE_CODE == 'ja' %}selected{% endif %}>日本語</option>
+        </select>
+    </form>
+
+    <script>
+        document.getElementById("language-select").addEventListener("change", function() {
+            window.location.href = this.value;
+        });
+    </script>
+
     <main class="flex-1 flex flex-col items-center justify-center">
         {% block content %}{% endblock %}
     </main>

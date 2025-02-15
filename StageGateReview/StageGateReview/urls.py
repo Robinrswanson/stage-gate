@@ -1,8 +1,9 @@
-from django.urls import path
-from reviewai import views
+from django.urls import path, include
+from django.contrib import admin
+from django.conf.urls.i18n import i18n_patterns
 
-urlpatterns = [
-    path('', views.home, name='home'),
-    path('chat/', views.chat, name='chat'),
-    path('chat_api/', views.chat_api, name='chat_api'),
-]
+urlpatterns = i18n_patterns(
+    path('admin/', admin.site.urls),
+    path('rosetta/', include('rosetta.urls')),
+    path('', include('reviewai.urls')),
+)

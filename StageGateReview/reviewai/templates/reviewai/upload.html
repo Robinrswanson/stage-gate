@@ -1,21 +1,22 @@
 {% extends "reviewai/base.html" %}
+{% load i18n %}
 
 {% block content %}
 <div class="flex flex-col items-center justify-center h-screen text-center">
     <!-- Title -->
-    <h1 class="text-5xl font-bold text-white mb-6">Stage-Gate Review</h1>
+    <h1 class="text-5xl font-bold text-white mb-6">{% trans "Stage-Gate Review" %}</h1>
 
     <!-- Upload Button -->
     <form method="post" enctype="multipart/form-data" class="flex flex-col items-center">
         {% csrf_token %}
         <label class="cursor-pointer bg-[#10a37f] text-white px-6 py-3 text-lg rounded-lg hover:bg-[#1a7f64] transition duration-300">
-            Upload Slide Deck
+            {% trans "Upload PDF" %}
             <input type="file" name="file" class="hidden" onchange="this.form.submit()">
         </label>
     </form>
 
     <!-- Alternative Option -->
-    <p class="mt-6 text-gray-300 text-lg">Don't have a slide deck?</p>
-    <a href="{% url 'chat' %}" class="text-[#10a37f] hover:underline text-lg">Start Chat Without Upload</a>
+    <p class="mt-6 text-gray-300 text-lg">{% trans "Don't have a pdf?" %}</p>
+    <a href="{% url 'chat' %}" class="text-[#10a37f] hover:underline text-lg">{% trans 'Start Chat Without Upload' %}</a>
 </div>
 {% endblock %}

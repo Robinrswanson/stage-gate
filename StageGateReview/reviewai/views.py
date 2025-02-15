@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from django.utils.translation import get_language
 from django.http import JsonResponse
 from .models import FileUpload, ChatMessage
 import fitz
@@ -16,7 +17,6 @@ model = genai.GenerativeModel("models/gemini-2.0-flash", system_instruction=inst
 
 # Global variable for chat session
 curr_chat = None  # Initialized as None
-
 
 def extract_text_from_pdf(pdf_path):
     """Extract text from a PDF file."""
@@ -58,6 +58,13 @@ def chat(request):
         ai_prompt = f"Here is the pdf containting the business idea:\n\n{extracted_text}. Please give a brief introudction the generate an initial PREP report giving details where possible."
     else:
         ai_prompt = "Please give a brief introudction of youself and then proceed with part 1."
+
+    # Detect selected language
+    lang = get_language()
+
+    if lang == 'ja':
+        ai_prompt += "\n\nすべての回答を日本語で提供してください。"
+
     response = curr_chat.send_message(ai_prompt)
 
     request.session['ai_response'] = response.text
@@ -66,17 +73,23 @@ def chat(request):
         'ai_response': response.text,
     })
 
-
-
 def chat_api(request):
-    """Handles chat messages, but does NOT persist chat history."""
+    """Handles chat messages and adapts AI response to the selected language."""
     if request.method == 'POST':
         user_input = request.POST.get('message')
 
         global curr_chat
         if curr_chat is None:
-            curr_chat = model.start_chat()  # Ensure chat exists
+            curr_chat = model.start_chat()
 
+        # Detect selected language
+        lang = get_language()
+
+        # Modify AI system instruction based on language
+        if lang == 'ja':
+            user_input += "\n\nすべての回答を日本語で提供してください。"
+
+        # Send message with appropriate instruction
         response = curr_chat.send_message(user_input)
         ai_response = response.text if response and response.text else "Error generating response."
 

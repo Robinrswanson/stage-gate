@@ -1,18 +1,18 @@
 {% extends "reviewai/base.html" %}
+{% load i18n %}
 
 {% block content %}
 <div class="flex flex-col h-screen bg-gray-900 text-white w-full md:w-1/2 mx-auto">
     <!-- Chat Header -->
     <div class="p-4 flex justify-between items-center border-b border-gray-700">
         <a href="{% url 'home' %}" class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition duration-300">
-            Home
+            {% trans "Home" %}
         </a>
-        <div class="text-center text-2xl font-bold flex-grow">Stage-Gate AI Review</div>
+        <div class="text-center text-2xl font-bold flex-grow">{% trans "Stage-Gate AI Review" %}</div>
     </div>
 
     <!-- Chat Container -->
     <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4">
-        <!-- Show AI's initial response -->
         {% if ai_response %}
         <div class="flex justify-start">
             <div class="max-w-xs md:max-w-md p-3 rounded-lg bg-gray-700 text-white">
@@ -33,10 +33,13 @@
     <!-- Chat Input -->
     <form id="chat-form" class="p-4 border-t border-gray-700 flex items-center">
         {% csrf_token %}
-        <input type="text" id="message" placeholder="Type a message..." 
-            class="flex-1 p-3 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-[#10a37f]" required>
+        <input type="text" id="message" placeholder="{% trans 'Type a message or use voice...' %}" 
+        class="flex-1 p-3 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-[#10a37f]" required>
+        <button type="button" onclick="startRecording()" class="ml-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-700 transition duration-300">
+            🎤
+        </button>
         <button type="submit" class="ml-3 px-5 py-2 bg-[#10a37f] text-white rounded-lg hover:bg-[#1a7f64] transition duration-300">
-            Send
+            {% trans "Send" %}
         </button>
     </form>
 </div>
@@ -62,7 +65,6 @@
             });
 
             let data = await response.json();
-
             let chatBox = document.getElementById("chat-box");
 
             // Append user message
@@ -73,7 +75,31 @@
 
             chatBox.scrollTop = chatBox.scrollHeight;
             document.getElementById("message").value = "";
+
+            // Read out AI response
+            speakText(data.response);
         };
     });
+
+    // 🎤 Speech-to-Text (Voice Input)
+    function startRecording() {
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'en-US';
+
+        recognition.onresult = function(event) {
+            document.getElementById('message').value = event.results[0][0].transcript;
+        };
+
+        recognition.start();
+    }
+
+    // 🔊 Text-to-Speech (Voice Output)
+    function speakText(text) {
+        let msg = new SpeechSynthesisUtterance(text);
+        msg.lang = 'en-US';
+        msg.rate = 1.0;  // Adjust speed if needed
+        window.speechSynthesis.speak(msg);
+    }
 </script>
+
 {% endblock %}
