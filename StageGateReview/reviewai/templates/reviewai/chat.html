@@ -55,7 +55,11 @@
             let userMessage = document.getElementById("message").value;
             let csrfToken = getCSRFToken();
 
-            let response = await fetch("/chat_api/", {
+            // Extract language prefix from the current URL (e.g., "/en/chat" → "en" or "ja")
+            let langPrefix = window.location.pathname.split('/')[1];  // 'en' or 'ja'
+            let apiUrl = `/${langPrefix}/chat_api/`;  // Correct API URL
+
+            let response = await fetch(apiUrl, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded",
@@ -76,15 +80,18 @@
             chatBox.scrollTop = chatBox.scrollHeight;
             document.getElementById("message").value = "";
 
-            // Read out AI response
-            speakText(data.response);
+            // Read out AI response in the correct language
+            speakText(data.response, langPrefix);
         };
     });
 
-    // 🎤 Speech-to-Text (Voice Input)
+    // 🎤 Speech-to-Text (Voice Input) with Language Detection
     function startRecording() {
         const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'en-US';
+
+        // Detect language from URL
+        let langPrefix = window.location.pathname.split('/')[1];  
+        recognition.lang = (langPrefix === 'ja') ? 'ja-JP' : 'en-US';  // Set language dynamically
 
         recognition.onresult = function(event) {
             document.getElementById('message').value = event.results[0][0].transcript;
@@ -93,13 +100,14 @@
         recognition.start();
     }
 
-    // 🔊 Text-to-Speech (Voice Output)
-    function speakText(text) {
+    // 🔊 Text-to-Speech (Voice Output) with Language Detection
+    function speakText(text, langPrefix) {
         let msg = new SpeechSynthesisUtterance(text);
-        msg.lang = 'en-US';
+        msg.lang = (langPrefix === 'ja') ? 'ja-JP' : 'en-US';  // Set language dynamically
         msg.rate = 1.0;  // Adjust speed if needed
         window.speechSynthesis.speak(msg);
     }
+
 </script>
 
 {% endblock %}
