@@ -1,5 +1,6 @@
 {% extends "reviewai/base.html" %}
 {% load i18n %}
+{% load chat_extras %}
 
 {% block content %}
 <div class="flex flex-col h-screen bg-gray-900 text-white w-full md:w-1/2 mx-auto">
@@ -15,16 +16,18 @@
     <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4">
         {% if ai_response %}
         <div class="flex justify-start">
-            <div class="max-w-xs md:max-w-md p-3 rounded-lg bg-gray-700 text-white">
-                <strong>AI:</strong> {{ ai_response }}
+            <div class="w-full p-3 rounded-lg bg-gray-700 text-white">
+                <strong>AI:</strong>
+                {{ ai_response | convert_markdown | safe}}
             </div>
         </div>
         {% endif %}
         
         {% for message in chat_messages %}
             <div class="flex {% if message.role == 'user' %}justify-end{% else %}justify-start{% endif %}">
-                <div class="max-w-xs md:max-w-md p-3 rounded-lg {% if message.role == 'user' %}bg-[#10a37f] text-white{% else %}bg-gray-700 text-white{% endif %}">
-                    <strong>{% if message.role == 'user' %}You{% else %}AI{% endif %}:</strong> {{ message.content }}
+                <div class="p-3 rounded-lg {% if message.role == 'user' %}max-w-xs md:max-w-md bg-[#10a37f] text-white{% else %} w-full bg-gray-700 text-white{% endif %}">
+                    <strong>{% if message.role == 'user' %}You{% else %}AI{% endif %}:</strong> 
+                    {{ message.content | convert_markdown | safe }}
                 </div>
             </div>
         {% endfor %}
