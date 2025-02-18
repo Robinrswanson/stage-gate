@@ -1,0 +1,42 @@
+{% extends "reviewai/base.html" %}
+{% load i18n %}
+{% load chat_extras %}
+
+{% block content %}
+  <div class="w-full max-w-md">
+    <div class="bg-gray-800 shadow-md rounded-lg p-8 text-white">
+      <h2 class="text-2xl font-bold mb-6 text-center">{% trans "Login" %}</h2>
+      <form method="post" action="{% url 'login' %}">
+        {% csrf_token %}
+        <div class="mb-4">
+          <input
+            type="text"
+            name="username"
+            placeholder="{% trans 'Username' %}"
+            required
+            class="w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+        </div>
+        <div class="mb-4">
+          <input
+            type="password"
+            name="password"
+            placeholder="{% trans 'Password' %}"
+            required
+            class="w-full px-4 py-2 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+        </div>
+        <button
+          type="submit"
+          class="w-full py-2 bg-green-500 rounded hover:bg-green-600 transition-colors"
+        >
+        {% trans 'Log in' %}
+        </button>
+      </form>
+      <p class="mt-4 text-center text-sm">
+        {% trans "Don't have an account?" %}
+        <a href="{% url 'register' %}" class="text-green-500 hover:underline">{% trans 'Register' %}</a>
+      </p>
+    </div>
+  </div>
+  {% endblock %}

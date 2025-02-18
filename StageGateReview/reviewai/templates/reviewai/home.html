@@ -1,0 +1,86 @@
+{% extends "reviewai/base.html" %}
+{% load i18n %}
+{% load chat_extras %}
+
+{% block content %}
+    <div class="flex h-screen bg-gray-900 w-full">
+        <div id="sidebar" class="w-64 bg-gray-800 p-5 transition-all duration-300 flex flex-col justify-between cursor-pointer" onclick="expandSidebar()">
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-white text-xl font-bold" id="logo">Logo</span>
+                    <button id="toggleButton" class="p-2 bg-gray-200 rounded" onclick="toggleSidebar(event)">☰</button>
+                </div>
+                
+                <button action="{url 'home'}" class="w-full p-2 bg-blue-500 text-white rounded mb-4">New Chat</button>
+
+                <div id="chatHistory" class="">
+                    {% for chat in chats %}
+                        <a href="{% url 'chat' chat.id %}" class="block text-white hover:bg-gray-700 px-4 py-2 rounded-lg transition duration-300">{{ chat.title }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="relative">
+                <button class="w-full p-2 bg-gray-300 rounded" onclick="toggleProfileMenu(event)">Profile</button>
+                <div id="profileMenu" class="hidden absolute bottom-full left-0 bg-white shadow-md rounded p-2 w-40 mb-2">
+                    <form action="{% url 'logout' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="block w-full text-left p-2 hover:bg-gray-200">Log Out</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div id="mainContent" class="flex-grow p-5 flex flex-col items-center justify-center h-screen text-center">
+            <h1 class="text-5xl font-bold text-white mb-6">{% trans "Stage-Gate Review" %}</h1>
+            
+            <form method="post" enctype="multipart/form-data" class="flex flex-col items-center">
+                {% csrf_token %}
+                <label class="cursor-pointer bg-[#10a37f] text-white px-6 py-3 text-lg rounded-lg hover:bg-[#1a7f64] transition duration-300">
+                    {% trans "Upload PDF" %}
+                    <input type="file" name="file" class="hidden" onchange="this.form.submit()">
+                </label>
+            </form>
+            
+            <p class="mt-6 text-gray-300 text-lg">{% trans "Don't have a pdf?" %}</p>
+            <a class="text-[#10a37f] hover:underline text-lg">{% trans 'Start Chat Without Upload' %}</a>
+        </div>
+    </div>
+
+    <script>
+        function toggleSidebar(event) {
+            event.stopPropagation(); // Prevent sidebar from triggering expandSidebar()
+            const sidebar = document.getElementById('sidebar');
+            const toggleButton = document.getElementById('toggleButton');
+            const logo = document.getElementById('logo');
+            const chatHistory = document.getElementById('chatHistory');
+            
+            if (sidebar.classList.contains('w-64')) {
+                sidebar.classList.remove('w-64');
+                sidebar.classList.add('w-16');
+                logo.classList.add('hidden');
+                chatHistory.classList.add('hidden');
+                document.querySelectorAll('#sidebar ul, #sidebar .relative').forEach(el => el.classList.add('hidden'));
+            } else {
+                expandSidebar();
+            }
+        }
+        
+        function expandSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const toggleButton = document.getElementById('toggleButton');
+            const logo = document.getElementById('logo');
+            
+            sidebar.classList.remove('w-16');
+            sidebar.classList.add('w-64');
+            logo.classList.remove('hidden');
+            chatHistory.classList.remove('hidden');
+            document.querySelectorAll('#sidebar ul, #sidebar .relative').forEach(el => el.classList.remove('hidden'));
+        }
+
+        function toggleProfileMenu(event) {
+            event.stopPropagation(); // Prevent unwanted sidebar expansion
+            document.getElementById('profileMenu').classList.toggle('hidden');
+        }
+    </script>
+{% endblock %}

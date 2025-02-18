@@ -48,3 +48,33 @@ msgstr "メッセージを入力するか、音声を使用してください...
 
 msgid "Send"
 msgstr "送信"
+
+msgid "Login"
+msgstr "ログイン"
+
+msgid "Register"
+msgstr "サインアップ"
+
+msgid "Username"
+msgstr "ユーザー名"
+
+msgid "Email"
+msgstr "メール"
+
+msgid "Password"
+msgstr "パスワード"
+
+msgid "Confirm Password"
+msgstr "パスワードを認証する"
+
+msgid "Log in"
+msgstr "ログイン"
+
+msgid "Sign Up"
+msgstr "サインアップ"
+
+msgid "Don't have an account?"
+msgstr "アカウントをお持ちではありませんか?"
+
+msgid "Already have an account?"
+msgstr "すでにアカウントをお持ちですか?"

@@ -55,6 +55,7 @@ Key Rules for Consistency
 Regenerate the Report after each question is fully answered.
 PREP reports are based strictly on PDF content (if uploaded) & answers to the questions.
 Ensure logical flow between responses, maintaining internal consistency in analysis.
+You may be asked to answer in Japanese. Please do so when asked.
 
 Here is the Evaluation Criteria for Business Feasibility Assessment:
 

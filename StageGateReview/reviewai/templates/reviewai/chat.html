@@ -3,90 +3,174 @@
 {% load chat_extras %}
 
 {% block content %}
-<div class="flex flex-col h-screen bg-gray-900 text-white w-full md:w-1/2 mx-auto">
-    <!-- Chat Header -->
-    <div class="p-4 flex justify-between items-center border-b border-gray-700">
-        <a href="{% url 'home' %}" class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition duration-300">
-            {% trans "Home" %}
-        </a>
-        <div class="text-center text-2xl font-bold flex-grow">{% trans "Stage-Gate AI Review" %}</div>
-    </div>
-
-    <!-- Chat Container -->
-    <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4">
-        {% if ai_response %}
-        <div class="flex justify-start">
-            <div class="w-full p-3 rounded-lg bg-gray-700 text-white">
-                <strong>AI:</strong>
-                {{ ai_response | convert_markdown | safe}}
-            </div>
-        </div>
-        {% endif %}
-        
-        {% for message in chat_messages %}
-            <div class="flex {% if message.role == 'user' %}justify-end{% else %}justify-start{% endif %}">
-                <div class="p-3 rounded-lg {% if message.role == 'user' %}max-w-xs md:max-w-md bg-[#10a37f] text-white{% else %} w-full bg-gray-700 text-white{% endif %}">
-                    <strong>{% if message.role == 'user' %}You{% else %}AI{% endif %}:</strong> 
-                    {{ message.content | convert_markdown | safe }}
+    <div class="flex h-screen bg-gray-900 w-full">
+        <div id="sidebar" class="w-64 bg-gray-800 p-5 transition-all duration-300 flex flex-col justify-between cursor-pointer" onclick="expandSidebar()">
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-white text-xl font-bold" id="logo">Logo</span>
+                    <button id="toggleButton" class="p-2 bg-gray-500 rounded" onclick="toggleSidebar(event)">☰</button>
+                </div>
+                
+                <button onclick="window.location.href='/'" class="w-full p-2 bg-blue-500 text-white rounded mb-4">
+                    New Chat
+                </button>
+                
+                <div id="chatHistory" class="">
+                    {% for chat in chats %}
+                        <a href="{% url 'chat' chat.id %}" class="block text-white hover:bg-gray-700 px-4 py-2 rounded-lg transition duration-300">{{ chat.title }}</a>
+                    {% endfor %}
                 </div>
             </div>
-        {% endfor %}
+            
+            <div class="relative">
+                <button class="w-full p-2 bg-gray-500 rounded" onclick="toggleProfileMenu(event)">Profile</button>
+                <div id="profileMenu" class="hidden absolute bottom-full left-0 bg-gray-500 shadow-md rounded p-2 w-40 mb-2">
+                    <form action="{% url 'logout' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="block w-full text-left p-2 hover:bg-gray-400">Log Out</button>
+                    </form>
+                </div>
+            </div>
+        </div>  
+        <div id="mainContent" class="flex flex-col h-screen bg-gray-900 text-white w-full md:w-1/2 mx-auto">
+            <!-- Chat Header -->
+            <div class="p-4 flex justify-between items-center border-b border-gray-700">
+                <div class="text-center text-2xl font-bold flex-grow">{% trans "Stage-Gate AI Review" %}</div>
+            </div>
+        
+            <!-- Chat Container -->
+            <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4">
+                {% if ai_response %}
+                <div class="flex justify-start">
+                    <div class="w-full p-3 rounded-lg bg-gray-700 text-white">
+                        <strong>AI:</strong>
+                        {{ ai_response | convert_markdown | safe}}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% for message in messages %}
+                    <div class="flex {% if message.role == 'user' %}justify-end{% else %}justify-start{% endif %}">
+                        <div class="p-3 rounded-lg {% if message.role == 'user' %} max-w-xs md:max-w-md bg-[#10a37f] text-white {% else %} w-full bg-gray-700 text-white {% endif %}">
+                            <strong>{% if message.role == 'user' %}You{% else %}AI{% endif %}:</strong> 
+                            {{ message.content | convert_markdown | safe }}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        
+            <!-- Chat Input -->
+            <form id="chat-form" enctype="text/plain" class="p-4 border-t border-gray-700 flex items-center">
+                {% csrf_token %}
+                <input type="text" id="message" placeholder="{% trans 'Type a message or use voice...' %}" 
+                class="flex-1 p-3 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-[#10a37f]" required>
+                <button type="button" onclick="startRecording()" class="ml-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-700 transition duration-300">
+                    🎤
+                </button>
+                <button type="submit" class="ml-3 px-5 py-2 bg-[#10a37f] text-white rounded-lg hover:bg-[#1a7f64] transition duration-300">
+                    {% trans "Send" %}
+                </button>
+            </form>
+        </div>
     </div>
 
-    <!-- Chat Input -->
-    <form id="chat-form" class="p-4 border-t border-gray-700 flex items-center">
-        {% csrf_token %}
-        <input type="text" id="message" placeholder="{% trans 'Type a message or use voice...' %}" 
-        class="flex-1 p-3 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-[#10a37f]" required>
-        <button type="button" onclick="startRecording()" class="ml-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-700 transition duration-300">
-            🎤
-        </button>
-        <button type="submit" class="ml-3 px-5 py-2 bg-[#10a37f] text-white rounded-lg hover:bg-[#1a7f64] transition duration-300">
-            {% trans "Send" %}
-        </button>
-    </form>
-</div>
+    <script>
+        function toggleSidebar(event) {
+            event.stopPropagation(); // Prevent sidebar from triggering expandSidebar()
+            const sidebar = document.getElementById('sidebar');
+            const toggleButton = document.getElementById('toggleButton');
+            const logo = document.getElementById('logo');
+            const chatHistory = document.getElementById('chatHistory');
+            
+            if (sidebar.classList.contains('w-64')) {
+                sidebar.classList.remove('w-64');
+                sidebar.classList.add('w-16');
+                logo.classList.add('hidden');
+                chatHistory.classList.add('hidden');
 
-<script>
+                document.querySelectorAll('#sidebar ul, #sidebar .relative').forEach(el => el.classList.add('hidden'));
+            } else {
+                expandSidebar();
+            }
+        }
+        
+        function expandSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const toggleButton = document.getElementById('toggleButton');
+            const logo = document.getElementById('logo');
+            
+            sidebar.classList.remove('w-16');
+            sidebar.classList.add('w-64');
+            logo.classList.remove('hidden');
+            chatHistory.classList.remove('hidden');
+            document.querySelectorAll('#sidebar ul, #sidebar .relative').forEach(el => el.classList.remove('hidden'));
+        }
+
+        function toggleProfileMenu(event) {
+            event.stopPropagation(); // Prevent unwanted sidebar expansion
+            document.getElementById('profileMenu').classList.toggle('hidden');
+        }
+
     function getCSRFToken() {
         return document.querySelector('[name=csrfmiddlewaretoken]').value;
     }
 
     document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("chat-form").onsubmit = async function (event) {
-            event.preventDefault();
-            let userMessage = document.getElementById("message").value;
-            let csrfToken = getCSRFToken();
+    document.getElementById("chat-form").onsubmit = async function (event) {
+        event.preventDefault();
+        let userMessage = document.getElementById("message").value;
+        let chatBox = document.getElementById("chat-box");
+        let csrfToken = getCSRFToken();
+        
+        // Extract language prefix from URL
+        let langPrefix = window.location.pathname.split('/')[1];
+        let apiUrl = `/${langPrefix}/chat/{{ chat_id }}/`;
 
-            // Extract language prefix from the current URL (e.g., "/en/chat" → "en" or "ja")
-            let langPrefix = window.location.pathname.split('/')[1];  // 'en' or 'ja'
-            let apiUrl = `/${langPrefix}/chat_api/`;  // Correct API URL
+        // Add user's message to chat UI immediately
+        let userMessageDiv = document.createElement("div");
+        userMessageDiv.className = "flex justify-end";
+        userMessageDiv.innerHTML = `
+            <div class="p-3 rounded-lg max-w-xs md:max-w-md bg-[#10a37f] text-white">
+                <strong>You:</strong> ${userMessage}
+            </div>`;
+        chatBox.appendChild(userMessageDiv);
 
-            let response = await fetch(apiUrl, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "X-CSRFToken": csrfToken
-                },
-                body: new URLSearchParams({ message: userMessage })
-            });
+        // Scroll to bottom
+        chatBox.scrollTop = chatBox.scrollHeight;
 
-            let data = await response.json();
-            let chatBox = document.getElementById("chat-box");
+        // Send POST request
+        let response = await fetch(apiUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "X-CSRFToken": csrfToken
+            },
+            body: new URLSearchParams({ message: userMessage })
+        });
 
-            // Append user message
-            chatBox.innerHTML += `<div class="flex justify-end"><div class="max-w-md p-3 rounded-lg bg-[#10a37f] text-white">You: ${userMessage}</div></div>`;
+        let data = await response.json();  // Ensure backend returns JSON
+        let aiMessage = data.response;  // Extract AI text response
 
-            // Append AI response
-            chatBox.innerHTML += `<div class="flex justify-start"><div class="max-w-md p-3 rounded-lg bg-gray-700 text-white">AI: ${data.response}</div></div>`;
+        // Add AI's response to chat UI
+        let aiMessageDiv = document.createElement("div");
+        aiMessageDiv.className = "flex justify-start";
+        aiMessageDiv.innerHTML = `
+            <div class="w-full p-3 rounded-lg bg-gray-700 text-white">
+                <strong>AI:</strong> ${aiMessage}
+            </div>`;
+        chatBox.appendChild(aiMessageDiv);
 
-            chatBox.scrollTop = chatBox.scrollHeight;
-            document.getElementById("message").value = "";
+        // Scroll to bottom
+        chatBox.scrollTop = chatBox.scrollHeight;
 
-            // Read out AI response in the correct language
-            speakText(data.response, langPrefix);
-        };
-    });
+        // Clear input field
+        document.getElementById("message").value = "";
+
+        // Read AI response aloud
+        // speakText(aiMessage, langPrefix);
+    };
+});
+
 
     // 🎤 Speech-to-Text (Voice Input) with Language Detection
     function startRecording() {
@@ -111,6 +195,21 @@
         window.speechSynthesis.speak(msg);
     }
 
-</script>
+    document.addEventListener("DOMContentLoaded", function () {
+        let chatBox = document.getElementById("chat-box");
 
+        function scrollToBottom() {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Scroll to bottom on page load
+        scrollToBottom();
+
+        // Scroll when new messages appear
+        let observer = new MutationObserver(scrollToBottom);
+        observer.observe(chatBox, { childList: true, subtree: true });
+    });
+
+
+    </script>
 {% endblock %}
