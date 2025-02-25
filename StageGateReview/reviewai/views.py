@@ -1,15 +1,14 @@
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.translation import get_language
-from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
-from .models import Chat, Message, FileUpload
 from django.contrib import auth
-from django.contrib.auth.models import User
-from .forms import SignUpForm, ChatForm, FileUploadForm
 from django.db import transaction
-from django.http import JsonResponse, HttpResponse
-from reviewai.utils import build_history
-import fitz
+from django.http import JsonResponse
+from django.contrib.auth.models import User
+from .models import Chat, UserMessage, AiMessage, FileMessage, FileUpload
+from .forms import ChatForm, FileUploadForm
+from reviewai.utils import build_history, extract_text_from_pdf, parse_ai_response, generate_pdf, parse_markdown_response
+from django.http import HttpResponse
 import os
 import google.generativeai as genai
 
@@ -19,162 +18,158 @@ genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
 
 with open("reviewai/instructions.txt", "r", encoding="utf-8") as f:
     instructions = f.read()
+with open("reviewai/ja_instructions.txt", "r", encoding="utf-8") as f:
+    ja_instructions = f.read()
 
 model = genai.GenerativeModel("models/gemini-2.0-flash", system_instruction=instructions)
+jaModel = genai.GenerativeModel("models/gemini-2.0-flash", system_instruction=ja_instructions)
 
-def extract_text_from_pdf(pdf_path):
-    """Extract text from a PDF file."""
-    doc = fitz.open(pdf_path)
-    text = "\n".join([page.get_text() for page in doc])
-    return text
-
-
-# def home(request):
-#     if request.method == 'POST' and request.FILES.get('file'):
-#         file = request.FILES['file']
-#         uploaded_file = FileUpload.objects.create(file=file)
-
-#         # Extract text from PDF
-#         pdf_path = uploaded_file.file.path
-#         extracted_text = extract_text_from_pdf(pdf_path)
-#         uploaded_file.extracted_text = extracted_text
-#         uploaded_file.save()
-
-#         # Store extracted text for chat
-#         request.session['extracted_text'] = extracted_text
-
-#         return redirect('chat')
-
-#     return render(request, 'reviewai/upload.html')
-
-
-# def chat(request):
-#     """Opens a new chat session every time the page is loaded."""
-#     extracted_text = request.session.pop('extracted_text', None)
-
-#     # Start a fresh chat every time the chat page is opened
-#     global curr_chat
-#     curr_chat = model.start_chat()
-
-#     # Determine AI's initial message
-#     if extracted_text:
-#         # Generate a summarized report from the PDF
-#         ai_prompt = f"Here is the pdf containting the business idea:\n\n{extracted_text}. Please give a brief introudction the generate an initial PREP report giving details where possible."
-#     else:
-#         ai_prompt = "Please give a brief introudction of youself and then proceed with part 1."
-
-#     # Detect selected language
-#     lang = get_language()
-
-#     if lang == 'ja':
-#         ai_prompt += "\n\nすべての回答を日本語で提供してください。"
-
-#     response = curr_chat.send_message(ai_prompt)
-
-#     request.session['ai_response'] = response.text
-
-#     return render(request, 'reviewai/chat.html', {
-#         'ai_response': response.text,
-#     })
-
-# def chat_api(request):
-#     """Handles chat messages and adapts AI response to the selected language."""
-#     if request.method == 'POST':
-#         user_input = request.POST.get('message')
-
-#         global curr_chat
-#         if curr_chat is None:
-#             curr_chat = model.start_chat()
-
-#         # Detect selected language
-#         lang = get_language()
-
-#         # Modify AI system instruction based on language
-#         if lang == 'ja':
-#             user_input += "\n\nすべての回答を日本語で提供してください。"
-
-#         # Send message with appropriate instruction
-#         response = curr_chat.send_message(user_input)
-#         ai_response = response.text if response and response.text else "Error generating response."
-
-#         return JsonResponse({'response': ai_response})
-
-#     return JsonResponse({'error': 'Invalid request'}, status=400)
-
-
+### HOME VIEW ###
 @login_required
 def home(request):
     chats = Chat.objects.filter(user=request.user)
-    
+
     if request.method == 'POST':
         file = FileUploadForm(request.POST, request.FILES)
         if file.is_valid():
             file = file.cleaned_data['file']
-            if file:
-                uploaded_file = FileUpload.objects.create(file=file)
-                extracted_text = extract_text_from_pdf(uploaded_file.file.path)
-                uploaded_file.extracted_text = extracted_text
-                uploaded_file.save()
-                message = extracted_text
+
+            uploaded_file = FileUpload.objects.create(file=file)
+            extracted_text = extract_text_from_pdf(uploaded_file.file.path)
+            uploaded_file.extracted_text = extracted_text
+            uploaded_file.save()
+
             # Create chat
-            chat = Chat.objects.create(user=request.user, title=message[:50])
-            chat_session = model.start_chat()
-            if get_language() == 'ja':
-                message += "\n\nすべての回答を日本語で提供してください。"
-            ai_response = chat_session.send_message(message)
-            Message.objects.create(chat=chat, content=message, role="user")
-            Message.objects.create(chat=chat, content=ai_response.text, role="model")
-            return redirect(f'chat/{chat.id}', chat_id=chat.id)
+            chat = Chat.objects.create(user=request.user, title="temp")
+
+            # Create FileMessage for the file upload
+            filemsg = FileMessage.objects.create(
+                chat=chat, role="user", file_name=file.name, file=uploaded_file
+            )
+            uploaded_file.filemsg = filemsg
+
+            filemsg.save()
+            uploaded_file.save()
+
+            # Start AI response session
+            if get_language() == "ja":
+                chat_session = jaModel.start_chat()
+            else:
+                chat_session = model.start_chat()
+            ai_response = chat_session.send_message(extracted_text)
+            content1, report, content2  = parse_ai_response(ai_response.text)
+            content1, report, content2  = parse_markdown_response(content1=content1, report=report, content2=content2)
+
+            # Save AI response
+            AiMessage.objects.create(chat=chat, role="model", content1=content1, content2=content2, report=report)
+
+            if report:
+                chat.report = report
+                chat.save()
+
+            return redirect(f'chat/{chat.id}')
+
         else:
+            # Create empty chat if no file is uploaded
             chat = Chat.objects.create(user=request.user, title="New Chat")
-            return redirect(f'chat/{chat.id}', chat_id=chat.id)
-    
-    if request.method == 'GET':
-        chat_id = request.GET.get('chat_id')
-        if chat_id:
-            chat = Chat.objects.get(id=chat_id)
-            return redirect(f'chat/<{chat.id}>', chat_id=chat.id)
+            return redirect(f'chat/{chat.id}')
     
     return render(request, 'reviewai/home.html', {'chats': chats})
 
-from django.http import JsonResponse
 
+### CHAT VIEW ###
 @login_required
 def chat(request, chat_id):
     chat = get_object_or_404(Chat, id=chat_id, user=request.user)
-    form = ChatForm(request.POST or None)  
+    form = ChatForm(request.POST or None)
     chats = Chat.objects.filter(user=request.user)
-
-    if request.method == 'POST' and form.is_valid():
-        user_message = form.cleaned_data['message']
+    if get_language() == "ja":
+        chat_session = jaModel.start_chat(history=build_history(chat_id))
+    else:
         chat_session = model.start_chat(history=build_history(chat_id))
+    if request.method == 'POST':
+        if (not form.is_valid()):
+            return JsonResponse({"error": "Invalid form data"}, status=400)
+
+        user_message = form.cleaned_data['message']
 
         with transaction.atomic():
             # Save user message
-            Message.objects.create(chat=chat, content=user_message, role="user")
+            UserMessage.objects.create(chat=chat, content=user_message, role="user")
 
             # Generate AI response
-            if get_language() == 'ja':
-                message += "\n\nすべての回答を日本語で提供してください。"
             ai_response = chat_session.send_message(user_message)
-            ai_text = ai_response.text if hasattr(ai_response, "text") else str(ai_response)
-            
+            content1, report, content2  = parse_ai_response(ai_response.text)
+
             # Save AI response
-            Message.objects.create(chat=chat, content=ai_text, role="model")
+            AiMessage.objects.create(chat=chat, role="model", content1=content1, content2=content2, report=report)
 
-        # Return AI response as JSON
-        return JsonResponse({"response": ai_text})
+            # Parse Markdown to HTML
+            content1, report, content2  = parse_markdown_response(content1=content1, report=report, content2=content2)
 
-    # Initial GET request
-    messages = Message.objects.filter(chat=chat).order_by('created_at')
+            if report:
+                chat.report = report
+                chat.save()
+
+        return JsonResponse({"content1": content1, "content2": content2, "report": report}, status=200)
+
+
+    # Fetch messages from all subclasses (UserMessage, AiMessage, FileMessage)
+    messages = list(UserMessage.objects.filter(chat=chat)) + \
+               list(AiMessage.objects.filter(chat=chat)) + \
+               list(FileMessage.objects.filter(chat=chat))
+    
+    messages.sort(key=lambda m: m.created_at)  # Ensure messages are in chronological order
+
     return render(request, 'reviewai/chat.html', {
         "chats": chats,
         "chat_id": chat_id,
-        'messages': messages,
-        'form': form
+        "messages": messages,
+        "form": form,
     })
 
 
+### CHAT MANAGEMENT VIEW ###
+@login_required
+def chat_management(request, chat_id):
+    chat = get_object_or_404(Chat, id=chat_id, user=request.user)
+
+    if request.method == "DELETE":
+        chat.delete()
+        return JsonResponse({"message": "Chat deleted successfully"}, status=200)
+
+    elif request.method == "PUT":
+        import json  # For parsing JSON body
+        
+        try:
+            data = json.loads(request.body)
+            new_title = data.get("title")
+
+            if not new_title or len(new_title) > 100:
+                return JsonResponse({"error": "Invalid title"}, status=400)
+
+            chat.title = new_title
+            chat.save()
+
+            return JsonResponse({"message": "Chat title updated", "title": chat.title}, status=200)
+
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Invalid JSON data"}, status=400)
+        
+    elif request.method == "GET":
+        # Generate and return the PDF containing chat.report
+        if chat.report:
+            pdf = generate_pdf(chat.report)
+            response = HttpResponse(pdf, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="chat_report_{chat.id}.pdf"'
+            return response
+        else:
+            return JsonResponse({"error": "No report found for this chat"}, status=404)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)
+
+
+### AUTH VIEWS ###
 def login(request):
     if request.method == 'POST':
         username = request.POST['username']
@@ -184,10 +179,9 @@ def login(request):
             auth.login(request, user)
             return redirect('home')
         else:
-            error_message = 'Invalid username or password'
-            return render(request, 'reviewai/login.html', {'error_message': error_message})
-    else:
-        return render(request, 'reviewai/login.html')
+            return render(request, 'reviewai/login.html', {'error_message': 'Invalid username or password'})
+    return render(request, 'reviewai/login.html')
+
 
 def register(request):
     if request.method == 'POST':
@@ -203,12 +197,12 @@ def register(request):
                 auth.login(request, user)
                 return redirect('home')
             except:
-                error_message = 'Error creating account'
-                return render(request, 'reviewai/register.html', {'error_message': error_message})
+                return render(request, 'reviewai/register.html', {'error_message': 'Error creating account'})
         else:
-            error_message = 'Password dont match'
-            return render(request, 'reviewai/register.html', {'error_message': error_message})
+            return render(request, 'reviewai/register.html', {'error_message': 'Passwords do not match'})
+
     return render(request, 'reviewai/register.html')
+
 
 def logout(request):
     auth.logout(request)

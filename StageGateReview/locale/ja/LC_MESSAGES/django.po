@@ -78,3 +78,12 @@ msgstr "アカウントをお持ちではありませんか?"
 
 msgid "Already have an account?"
 msgstr "すでにアカウントをお持ちですか?"
+
+msgid "New Chat"
+msgstr "新しいチャット"
+
+msgid "Profile"
+msgstr "プロフィール"
+
+msgid "Log out"
+msgstr "ログアウト"

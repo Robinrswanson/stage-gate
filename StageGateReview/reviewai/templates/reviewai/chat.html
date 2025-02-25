@@ -3,67 +3,140 @@
 {% load chat_extras %}
 
 {% block content %}
-    <div class="flex h-screen bg-gray-900 w-full">
-        <div id="sidebar" class="w-64 bg-gray-800 p-5 transition-all duration-300 flex flex-col justify-between cursor-pointer" onclick="expandSidebar()">
-            <div>
-                <div class="flex items-center justify-between mb-4">
-                    <span class="text-white text-xl font-bold" id="logo">Logo</span>
-                    <button id="toggleButton" class="p-2 bg-gray-500 rounded" onclick="toggleSidebar(event)">☰</button>
-                </div>
-                
-                <button onclick="window.location.href='/'" class="w-full p-2 bg-blue-500 text-white rounded mb-4">
-                    New Chat
-                </button>
-                
-                <div id="chatHistory" class="">
-                    {% for chat in chats %}
-                        <a href="{% url 'chat' chat.id %}" class="block text-white hover:bg-gray-700 px-4 py-2 rounded-lg transition duration-300">{{ chat.title }}</a>
-                    {% endfor %}
-                </div>
-            </div>
-            
-            <div class="relative">
-                <button class="w-full p-2 bg-gray-500 rounded" onclick="toggleProfileMenu(event)">Profile</button>
-                <div id="profileMenu" class="hidden absolute bottom-full left-0 bg-gray-500 shadow-md rounded p-2 w-40 mb-2">
-                    <form action="{% url 'logout' %}" method="post">
-                        {% csrf_token %}
-                        <button type="submit" class="block w-full text-left p-2 hover:bg-gray-400">Log Out</button>
-                    </form>
-                </div>
-            </div>
-        </div>  
-        <div id="mainContent" class="flex flex-col h-screen bg-gray-900 text-white w-full md:w-1/2 mx-auto">
-            <!-- Chat Header -->
-            <div class="p-4 flex justify-between items-center border-b border-gray-700">
-                <div class="text-center text-2xl font-bold flex-grow">{% trans "Stage-Gate AI Review" %}</div>
-            </div>
-        
-            <!-- Chat Container -->
-            <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4">
-                {% if ai_response %}
-                <div class="flex justify-start">
-                    <div class="w-full p-3 rounded-lg bg-gray-700 text-white">
-                        <strong>AI:</strong>
-                        {{ ai_response | convert_markdown | safe}}
+<div class="flex h-screen bg-gray-900 w-full">
+    <!-- Sidebar -->
+    <!-- Collapse Icon (top-left) -->
+    <div id="sidebar" class="w-64 bg-gray-800 px-3 h-screen transition-all duration-300 flex flex-col">
+        <button id="toggleButtonSB" class="px-2 py-4" onclick="toggleSidebar(event)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" class="bi bi-layout-sidebar" viewBox="0 0 16 16">
+                <path d="M0 3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm5-1v12h9a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zM4 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h2z"/>
+              </svg>
+        </button>
+
+        <!-- New Chat Button -->
+        <a href="{% url 'home' %}" class="btn w-full text-white text-left pl-2 mb-2 hover:bg-gray-700 transition duration-300">
+            New Chat
+        </a>
+
+        <!-- Chat List -->
+        <div id="chatHistory" class="overflow-y-auto flex-1 space-y-2">
+            {% for chat in chats %}
+                <div id="chat-{{ chat.id }}" class="flex items-center justify-between group p-2 rounded-lg transition duration-300 {% if chat.id == current_chat_id %}bg-gray-700{% else %}hover:bg-gray-700{% endif %}">
+                    <a id="chatTitle-{{ chat.id }}" href="{% url 'chat' chat.id %}" class="block text-white truncate w-full">
+                        {{ chat.title }}
+                    </a>
+                    <!-- Rename Input Overlay (hidden by default) -->
+                    <div id="rename-input-{{ chat.id }}" class="hidden flex items-center bg-gray-900 bg-opacity-90">
+                        <input type="text" id="rename-input-field-{{ chat.id }}" 
+                            class="w-full px-2 py-1 bg-gray-800 text-white border border-gray-600 rounded"
+                            placeholder="{% trans 'New Chat' %}"
+                            onblur="hideRenameInput('{{ chat.id }}', true)"
+                            onkeydown="handleRenameKeyPress(event, '{{ chat.id }}')">
                     </div>
+
+                    <!-- Dropdown Menu for Rename/Delete -->
+                    <div class="dropdown">
+                        <button class="btn p-0 w-4 h-4" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" class="bi bi-three-dots hover:opacity-50 transition-opacity" viewBox="0 0 16 16">
+                                <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/>
+                            </svg>
+                        </button>
+                        <ul class="dropdown-menu p-2 bg-gray-800 border-gray-700">
+                          <li><a class="dropdown-item rounded-sm text-white hover:bg-gray-700" onclick="downloadPDF('{{ chat.id }}')">Download PDF</a></li>
+                          <li><a class="dropdown-item rounded-sm text-white hover:bg-gray-700" onclick="showRenameInput('{{ chat.id }}')">Rename</a></li>
+                          <li><a class="dropdown-item rounded-sm text-white hover:bg-gray-700" onclick="deleteChat('{{ chat.id }}')">Delete</a></li>
+                        </ul>
+                      </div>
                 </div>
-                {% endif %}
-                
-                {% for message in messages %}
-                    <div class="flex {% if message.role == 'user' %}justify-end{% else %}justify-start{% endif %}">
-                        <div class="p-3 rounded-lg {% if message.role == 'user' %} max-w-xs md:max-w-md bg-[#10a37f] text-white {% else %} w-full bg-gray-700 text-white {% endif %}">
-                            <strong>{% if message.role == 'user' %}You{% else %}AI{% endif %}:</strong> 
-                            {{ message.content | convert_markdown | safe }}
+            {% endfor %}
+        </div>
+
+        <!-- Profile & Logout -->
+        <div class="mt-4">
+            <div class="dropdown">
+                <button class="btn btn-secondary dropdown-toggle w-full" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    {% trans "Profile" %}
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <form action="{% url 'logout' %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="block w-full text-left px-2 py-1 hover:bg-gray-700">
+                                {% trans "Log Out" %}
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Chat Section -->
+    <div id="mainContent" class="flex flex-col h-screen bg-gray-900 text-white flex-1 relative">
+        <!-- Chat Header -->
+        <button id="toggleButtonHD" class="absolute left-0 top-0 px-4 py-4 hidden" onclick="toggleSidebar(event)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" class="bi bi-layout-sidebar" viewBox="0 0 16 16">
+                <path d="M0 3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm5-1v12h9a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zM4 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h2z"/>
+              </svg>
+        </button>
+        <div class="h-16 flex justify-between items-center border-b border-gray-700">
+            <div class="text-center text-xl font-bold flex-grow">{% trans "Stage-Gate AI Review" %}</div>
+        </div>
+
+        <!-- Chat Messages -->
+        <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4">
+            <div class="w-full md:w-1/2 mx-auto flex-1 overflow-y-auto p-6 space-y-4">
+            {% for message in messages %}
+                {% if message.role == 'user' %}
+                    {% if message.file_name %}
+                        <!-- File Message -->
+                        <div id="{{ message.id }}" class="flex justify-end">
+                            <div class="p-3 rounded-lg max-w-xs md:max-w-md bg-[#10a37f] text-white flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark mr-2" viewBox="0 0 16 16">
+                                    <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+                                </svg>
+                                {{ message.file_name }}
+                            </div>
+                        </div>
+                    {% elif message.content %}
+                        <!-- User Message -->
+                        <div id="{{ message.id }}" class="flex justify-end">
+                            <div class="p-3 rounded-lg max-w-xs md:max-w-md bg-[#10a37f] text-white">
+                                {{ message.content | convert_markdown | safe }}
+                            </div>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    {% if message.content1 %}
+                    <div class="flex justify-start">
+                        <!-- AI Message Content1 -->
+                        <div class="w-full p-3 rounded-lg bg-gray-700 text-white">
+                            {{ message.content1 | convert_markdown | safe }}
                         </div>
                     </div>
-                {% endfor %}
+                    {% endif %}
+                    {% if message.report %}
+                        <!-- AI Report -->
+                        <div class="w-full p-3 rounded-lg bg-gray-700 text-white mt-2">
+                            {{ message.report | convert_markdown | safe }}
+                        </div>
+                    {% endif %}
+                    {% if message.content2 %}
+                        <!-- AI Content2 -->
+                        <div class="w-full p-3 rounded-lg bg-gray-700 text-white mt-2">
+                            {{ message.content2 | convert_markdown | safe }}
+                        </div>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
             </div>
-        
-            <!-- Chat Input -->
-            <form id="chat-form" enctype="text/plain" class="p-4 border-t border-gray-700 flex items-center">
+        </div>
+        <!-- Chat Input Form (floating at the bottom) -->
+        <div class="bg-gray-900 p-4 border-t border-gray-700">
+            <form id="chat-form" class="flex items-center w-full md:w-1/2 mx-auto">
                 {% csrf_token %}
-                <input type="text" id="message" placeholder="{% trans 'Type a message or use voice...' %}" 
-                class="flex-1 p-3 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-[#10a37f]" required>
+                <input type="text" id="message" placeholder="{% trans 'Type a message or use voice...' %}"
+                    class="flex-1 p-3 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-[#10a37f]" required>
                 <button type="button" onclick="startRecording()" class="ml-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-700 transition duration-300">
                     🎤
                 </button>
@@ -74,142 +147,219 @@
         </div>
     </div>
 
-    <script>
-        function toggleSidebar(event) {
-            event.stopPropagation(); // Prevent sidebar from triggering expandSidebar()
-            const sidebar = document.getElementById('sidebar');
-            const toggleButton = document.getElementById('toggleButton');
-            const logo = document.getElementById('logo');
-            const chatHistory = document.getElementById('chatHistory');
-            
-            if (sidebar.classList.contains('w-64')) {
-                sidebar.classList.remove('w-64');
-                sidebar.classList.add('w-16');
-                logo.classList.add('hidden');
-                chatHistory.classList.add('hidden');
+<!-- JavaScript -->
+<script>
+    function toggleSidebar(event) {
+        event.stopPropagation();
+        const sidebar = document.getElementById('sidebar');
+        const sidebarButton = document.getElementById('toggleButtonSB');
+        const headerButton = document.getElementById('toggleButtonHD');
 
-                document.querySelectorAll('#sidebar ul, #sidebar .relative').forEach(el => el.classList.add('hidden'));
-            } else {
-                expandSidebar();
-            }
-        }
-        
-        function expandSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const toggleButton = document.getElementById('toggleButton');
-            const logo = document.getElementById('logo');
-            
-            sidebar.classList.remove('w-16');
+        // Toggle sidebar visibility (or use additional classes for a slide effect)
+        if (sidebar.classList.contains('w-0')) {
+            sidebar.classList.remove('w-0');
             sidebar.classList.add('w-64');
-            logo.classList.remove('hidden');
-            chatHistory.classList.remove('hidden');
-            document.querySelectorAll('#sidebar ul, #sidebar .relative').forEach(el => el.classList.remove('hidden'));
+            sidebar.classList.add('px-3');
+            sidebarButton.classList.remove('hidden');
+            headerButton.classList.add('hidden');
+        } else {
+            sidebar.classList.remove('w-64');
+            sidebar.classList.add('w-0');
+            sidebar.classList.remove('px-3');
+            sidebarButton.classList.add('hidden');
+            headerButton.classList.remove('hidden');
         }
 
-        function toggleProfileMenu(event) {
-            event.stopPropagation(); // Prevent unwanted sidebar expansion
-            document.getElementById('profileMenu').classList.toggle('hidden');
-        }
+    }
 
     function getCSRFToken() {
         return document.querySelector('[name=csrfmiddlewaretoken]').value;
     }
 
-    document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("chat-form").onsubmit = async function (event) {
-        event.preventDefault();
-        let userMessage = document.getElementById("message").value;
-        let chatBox = document.getElementById("chat-box");
+    function toggleChatOptions(event, chatId) {
+        event.stopPropagation();
+        const dropdown = document.getElementById(`chat-options-${chatId}`);
+        dropdown.classList.toggle('hidden');
+    }
+
+    function showRenameInput(chatId) {
+        const inputDiv = document.getElementById(`rename-input-${chatId}`);
+        const chatTitle = document.getElementById(`chatTitle-${chatId}`);
+
+        chatTitle.classList.add('hidden');
+        inputDiv.classList.remove('hidden');
+    }
+
+    function hideRenameInput(chatId, cancel = false) {
+        const inputDiv = document.getElementById(`rename-input-${chatId}`);
+        const inputField = document.getElementById(`rename-input-field-${chatId}`);
+        const chatTitle = document.getElementById(`chatTitle-${chatId}`);
+
+        if (cancel || !inputField.value.trim()) {
+            chatTitle.classList.remove('hidden');
+            inputDiv.classList.add('hidden');
+        } else {
+            submitRename(chatId);
+        }
+    }
+
+    function handleRenameKeyPress(event, chatId) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            submitRename(chatId);
+        }
+    }
+
+    function submitRename(chatId) {
+        const inputField = document.getElementById(`rename-input-field-${chatId}`);
+        const newTitle = inputField.value.trim();
+
+        if (!newTitle) {
+            hideRenameInput(chatId, true);
+            return;
+        }
+
         let csrfToken = getCSRFToken();
-        
-        // Extract language prefix from URL
-        let langPrefix = window.location.pathname.split('/')[1];
-        let apiUrl = `/${langPrefix}/chat/{{ chat_id }}/`;
-
-        // Add user's message to chat UI immediately
-        let userMessageDiv = document.createElement("div");
-        userMessageDiv.className = "flex justify-end";
-        userMessageDiv.innerHTML = `
-            <div class="p-3 rounded-lg max-w-xs md:max-w-md bg-[#10a37f] text-white">
-                <strong>You:</strong> ${userMessage}
-            </div>`;
-        chatBox.appendChild(userMessageDiv);
-
-        // Scroll to bottom
-        chatBox.scrollTop = chatBox.scrollHeight;
-
-        // Send POST request
-        let response = await fetch(apiUrl, {
-            method: "POST",
+        fetch(`/edit_chat/${chatId}/`, {
+            method: "PUT",
             headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-                "X-CSRFToken": csrfToken
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken,
             },
-            body: new URLSearchParams({ message: userMessage })
+            body: JSON.stringify({ title: newTitle }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                location.reload();
+            } else {
+                alert("{% trans 'Error updating chat title' %}");
+            }
+        })
+        .catch(error => console.error("Error:", error));
+    }
+
+
+    function deleteChat(chatId) {
+        if (confirm("{% trans 'Are you sure you want to delete this chat?' %}")) {
+            let csrfToken = getCSRFToken();
+            fetch(`/edit_chat/${chatId}/`, {
+                method: "DELETE",
+                headers: { "X-CSRFToken": csrfToken },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert("{% trans 'Error deleting chat' %}");
+                }
+            })
+            .catch(error => console.error("Error:", error));
+        }
+    }
+
+    // Download PDF functionality
+    function downloadPDF(chatID) {
+        let csrfToken = getCSRFToken();
+        let chatId = chatID;
+
+        fetch(`/edit_chat/${chatId}/`, {
+            method: "GET",
+            headers: { "X-CSRFToken": csrfToken },
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.blob();
+            }
+            throw new Error("Failed to fetch PDF");
+        })
+        .then(blob => {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `chat_report_${chatId}.pdf`;
+            link.click();
+        })
+        .catch(error => {
+            console.error("Error downloading PDF:", error);
         });
+    }
 
-        let data = await response.json();  // Ensure backend returns JSON
-        let aiMessage = data.response;  // Extract AI text response
-
-        // Add AI's response to chat UI
-        let aiMessageDiv = document.createElement("div");
-        aiMessageDiv.className = "flex justify-start";
-        aiMessageDiv.innerHTML = `
-            <div class="w-full p-3 rounded-lg bg-gray-700 text-white">
-                <strong>AI:</strong> ${aiMessage}
-            </div>`;
-        chatBox.appendChild(aiMessageDiv);
-
-        // Scroll to bottom
+    document.addEventListener("DOMContentLoaded", function () {
+        let chatBox = document.getElementById("chat-box");
         chatBox.scrollTop = chatBox.scrollHeight;
 
-        // Clear input field
-        document.getElementById("message").value = "";
+        document.getElementById("chat-form").onsubmit = async function (event) {
+            event.preventDefault();
+            let userMessage = document.getElementById("message").value;
+            let chatBox = document.getElementById("chat-box");
+            let csrfToken = getCSRFToken();
+            let langPrefix = window.location.pathname.split('/')[1];
+            let chatId = "{{ chat_id }}";
+            let apiUrl = `/${langPrefix}/chat/${chatId}/`;
 
-        // Read AI response aloud
-        // speakText(aiMessage, langPrefix);
-    };
-});
+            // Append user message
+            let userMessageDiv = document.createElement("div");
+            userMessageDiv.className = "flex justify-end";
+            userMessageDiv.innerHTML = `<div class="p-3 rounded-lg max-w-xs md:max-w-md bg-[#10a37f] text-white">${userMessage}</div>`;
+            chatBox.appendChild(userMessageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
 
+            let response = await fetch(apiUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "X-CSRFToken": csrfToken
+                },
+                body: new URLSearchParams({ message: userMessage })
+            });
+            let data = await response.json();
+            let { content1, report, content2 } = data;
 
-    // 🎤 Speech-to-Text (Voice Input) with Language Detection
+            let aiMessageDiv = document.createElement("div");
+            aiMessageDiv.className = "flex justify-start flex-col w-full";
+
+            if (content1) {
+                aiMessageDiv.innerHTML += `
+                    <div class="w-full p-3 rounded-lg bg-gray-700 text-white">
+                        ${content1}
+                    </div>
+                `;
+            }
+
+            if (report) {
+                aiMessageDiv.innerHTML += `
+                    <div class="w-full p-3 rounded-lg bg-gray-700 text-white mt-2">
+                        ${report}
+                    </div>
+                `;
+            }
+
+            if (content2) {
+                aiMessageDiv.innerHTML += `
+                    <div class="w-full p-3 rounded-lg bg-gray-700 text-white mt-2">
+                        ${content2}
+                    </div>
+                `;
+            }
+
+            chatBox.appendChild(aiMessageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            document.getElementById("message").value = "";
+        };
+    });
+
     function startRecording() {
         const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-
-        // Detect language from URL
-        let langPrefix = window.location.pathname.split('/')[1];  
-        recognition.lang = (langPrefix === 'ja') ? 'ja-JP' : 'en-US';  // Set language dynamically
-
+        recognition.lang = "en-US";
         recognition.onresult = function(event) {
             document.getElementById('message').value = event.results[0][0].transcript;
         };
-
         recognition.start();
     }
 
-    // 🔊 Text-to-Speech (Voice Output) with Language Detection
-    function speakText(text, langPrefix) {
-        let msg = new SpeechSynthesisUtterance(text);
-        msg.lang = (langPrefix === 'ja') ? 'ja-JP' : 'en-US';  // Set language dynamically
-        msg.rate = 1.0;  // Adjust speed if needed
-        window.speechSynthesis.speak(msg);
-    }
 
-    document.addEventListener("DOMContentLoaded", function () {
-        let chatBox = document.getElementById("chat-box");
-
-        function scrollToBottom() {
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        // Scroll to bottom on page load
-        scrollToBottom();
-
-        // Scroll when new messages appear
-        let observer = new MutationObserver(scrollToBottom);
-        observer.observe(chatBox, { childList: true, subtree: true });
-    });
-
-
-    </script>
+</script>
 {% endblock %}

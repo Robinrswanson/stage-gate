@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "reviewai",
     "rosetta",
+    'bootstrap5',
 ]
 
 MIDDLEWARE = [

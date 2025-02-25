@@ -7,7 +7,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% trans "Stage-Gate AI Review" %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
+      {% load bootstrap5 %}
+      {% bootstrap_css %}
+      {% bootstrap_javascript %}
+      <style>
         body {
             background-color: #343541; 
             color: white;
@@ -15,7 +18,7 @@
         }
     </style>
 </head>
-<body class="flex flex-col min-h-screen">
+<body class="flex flex-col min-h-screen bg-gray-900">
     <form class="absolute top-4 right-4">
         <select id="language-select" class="bg-gray-800 text-white px-3 py-2 rounded-lg">
             <option value="/en" {% if request.LANGUAGE_CODE == 'en' %}selected{% endif %}>English</option>
