@@ -40,7 +40,8 @@ def home(request):
             uploaded_file.save()
 
             # Create chat
-            chat = Chat.objects.create(user=request.user, title="temp")
+            chat_title = "New Chat" if get_language() == "en" else "新しいチャット"
+            chat = Chat.objects.create(user=request.user, title=chat_title)
 
             # Create FileMessage for the file upload
             filemsg = FileMessage.objects.create(
@@ -71,7 +72,8 @@ def home(request):
 
         else:
             # Create empty chat if no file is uploaded
-            chat = Chat.objects.create(user=request.user, title="New Chat")
+            chat_title = "New Chat" if get_language() == "en" else "新しいチャット"
+            chat = Chat.objects.create(user=request.user, title=chat_title)
             return redirect(f'chat/{chat.id}')
     
     return render(request, 'reviewai/home.html', {'chats': chats})

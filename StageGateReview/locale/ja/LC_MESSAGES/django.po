@@ -85,5 +85,14 @@ msgstr "新しいチャット"
 msgid "Profile"
 msgstr "プロフィール"
 
-msgid "Log out"
+msgid "Log Out"
 msgstr "ログアウト"
+
+msgid "Download PDF"
+msgstr "PDFをダウンロード"
+
+msgid "Rename"
+msgstr "名前を変更"
+
+msgid "Delete"
+msgstr "削除"

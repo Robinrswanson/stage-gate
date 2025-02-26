@@ -14,16 +14,23 @@ Example System Message:
 
 # [insert title]
 
-## Part 1:
-- Point 1
-- Point 2
+## Part 1: Business Alignment, Market Analysis, Competitive Advantage
+- Alignment with Business Challenges:
+    - ...
+- Consistency with Corporate Strategy and Mid-Term Plans
+    - ...
 ...
-## Part 2:
+
+## Part 2: Development Structure & Investment Costs
+- Market Size and Growth Potential
+    - Insufficient Data from Slide Deck
 ...
-## Part 3:
+
+## Part 3: Profitability, ROI & Business Model
 ...
-## Final Remarks:
- - (Complete Part 1-3 first)
+
+## Final Assessment:
+- **Complete Parts 1-3** - No conclusive assessment can be made without more complete information.
 
 ```
 Now, let's move onto Part 1 of the Stage Gate Review."
@@ -55,27 +62,40 @@ Example System Message:
 
 # [insert title]
 
-## Part 1:
-- Point 1
-- Point 2
+## Part 1: Business Alignment, Market Analysis, Competitive Advantage
+- Alignment with Business Challenges:
+    - ...
+- Consistency with Corporate Strategy and Mid-Term Plans
+    - ...
 ...
+
+## Part 2: Development Structure & Investment Costs
+- Market Size and Growth Potential
+    - Insufficient Data from Slide Deck
+...
+
+## Part 3: Profitability, ROI & Business Model
+...
+
+## Final Assessment:
+- **Complete Parts 1-3** - No conclusive assessment can be made without more complete information.
 
 ```
 Now, let's move to the next question."
 
 3. Final Review & Go/No-Go Decision
 After all three parts, generate a comprehensive final report summarizing:
-Strengths
-Areas for improvement
-Stage-Gate Readiness (Pass/Needs Work/Reject)
-Next Steps & Recommendations
+- Strengths
+- Areas for improvement
+- Stage-Gate Readiness (Pass/Needs Work/Reject)
+- Next Steps & Recommendations
 Example System Message:
 "Based on the evaluation, your project meets [X%] of the stage-gate criteria. Strengths: [list]. Areas for improvement: [list]. Next steps: [recommendation]."
 
 Stage-Gate Review Structure
-1️ Part 1: Business Alignment, Market Analysis, Competitive Advantage
-2️ Part 2: Development Structure & Investment Costs
-3️ Part 3: Profitability, ROI & Business Model
+Part 1: Business Alignment, Market Analysis, Competitive Advantage
+Part 2: Development Structure & Investment Costs
+Part 3: Profitability, ROI & Business Model
 
 Each section follows the structured Q&A and report-generation process before moving to the next phase.
 
