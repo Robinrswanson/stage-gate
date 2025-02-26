@@ -5,8 +5,8 @@
 {% block content %}
 <div class="flex h-screen bg-gray-900 w-full">
     <!-- Sidebar -->
-    <div id="sidebar" class="w-64 bg-gray-800 px-3 h-screen transition-all duration-300 flex flex-col">
-        <button id="toggleButtonSB" class="my-4 p-2 rounded-circle hover:bg-gray-700 w-min h-min" onclick="toggleSidebar(event)">
+    <div id="sidebar" class="bg-gray-800 px-3 h-screen transition-all duration-300 flex-col hidden w-full lg:flex lg:w-64 absolute lg:static" style="z-index: 1;">
+        <button id="toggleButtonSB" class="my-3 p-2 rounded-circle hover:bg-gray-700 w-min h-min" onclick="toggleSidebar(event)">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" class="bi bi-layout-sidebar" viewBox="0 0 16 16">
                 <path d="M0 3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm5-1v12h9a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zM4 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h2z"/>
               </svg>
@@ -44,14 +44,21 @@
                             </svg>
                         </button>
                         <ul class="dropdown-menu p-2 bg-gray-800 border-gray-700">
-                          <li><a class="dropdown-item rounded-sm text-white hover:bg-gray-700" onclick="downloadPDF('{{ chat.id }}')">{% trans 'Download PDF' %}</a></li>
-                          <li><a class="dropdown-item rounded-sm text-white hover:bg-gray-700" onclick="showRenameInput('{{ chat.id }}')">{% trans 'Rename' %}</a></li>
-                          <li><a class="dropdown-item rounded-sm text-white hover:bg-gray-700" onclick="deleteChat('{{ chat.id }}')">{% trans 'Delete' %}</a></li>
+                            <li><a class="dropdown-item rounded-sm text-white hover:bg-gray-700" onclick="downloadPDF('{{ chat.id }}')">{% trans 'Download PDF' %}</a></li>
+                            <li><a class="dropdown-item rounded-sm text-white hover:bg-gray-700" onclick="showRenameInput('{{ chat.id }}')">{% trans 'Rename' %}</a></li>
+                            <li><a class="dropdown-item rounded-sm text-white hover:bg-gray-700" onclick="deleteChat('{{ chat.id }}')">{% trans 'Delete' %}</a></li>
                         </ul>
                       </div>
                 </div>
             {% endfor %}
         </div>
+
+        <form class="">
+            <select id="language-select" class="bg-gray-800 text-white px-3 py-2 rounded-lg">
+                <option value="/en" {% if request.LANGUAGE_CODE == 'en' %}selected{% endif %}>English</option>
+                <option value="/ja" {% if request.LANGUAGE_CODE == 'ja' %}selected{% endif %}>日本語</option>
+            </select>
+        </form>
 
         <!-- Profile & Logout -->
         <div class="my-2">
@@ -77,9 +84,9 @@
     </div>
 
     <!-- Main Chat Section -->
-    <div id="mainContent" class="flex flex-col h-screen bg-gray-900 text-white flex-1 relative">
+    <div id="mainContent" class="flex flex-col h-full w-full bg-gray-900 text-white flex-1 relative z-0">
         <!-- Chat Header -->
-        <button id="toggleButtonHD" class="absolute left-0 top-0 mx-4 my-3 p-2 hidden rounded-circle hover:bg-gray-700" onclick="toggleSidebar(event)">
+        <button id="toggleButtonHD" class="lg:hidden absolute left-0 top-0 mx-3 my-3 p-2 rounded-circle hover:bg-gray-700" onclick="toggleSidebar(event)">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" class="bi bi-layout-sidebar" viewBox="0 0 16 16">
                 <path d="M0 3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm5-1v12h9a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zM4 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h2z"/>
               </svg>
@@ -89,14 +96,14 @@
         </div>
 
         <!-- Chat Messages -->
-        <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-4">
-            <div id="chat-messages" class="w-full md:w-1/2 mx-auto flex-1 overflow-y-auto p-6 space-y-4">
+        <div id="chat-box" class="container-lg flex-1 overflow-y-auto p-4">
+            <div id="chat-messages" class="w-full mx-auto flex-1 space-y-4">
             {% for message in messages %}
                 {% if message.role == 'user' %}
                     {% if message.file_name %}
                         <!-- File Message -->
                         <div id="{{ message.id }}" class="flex justify-end">
-                            <div class="p-3 rounded-lg max-w-xs md:max-w-md bg-[#10a37f] text-white flex items-center">
+                            <div class="p-3 rounded-lg max-w-s w-full bg-[#10a37f] text-white flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" class="bi bi-filetype-pdf mr-2 w-8" viewBox="0 0 16 16">
                                     <path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2h-1v-1h1a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5zM1.6 11.85H0v3.999h.791v-1.342h.803q.43 0 .732-.173.305-.175.463-.474a1.4 1.4 0 0 0 .161-.677q0-.375-.158-.677a1.2 1.2 0 0 0-.46-.477q-.3-.18-.732-.179m.545 1.333a.8.8 0 0 1-.085.38.57.57 0 0 1-.238.241.8.8 0 0 1-.375.082H.788V12.48h.66q.327 0 .512.181.185.183.185.522m1.217-1.333v3.999h1.46q.602 0 .998-.237a1.45 1.45 0 0 0 .595-.689q.196-.45.196-1.084 0-.63-.196-1.075a1.43 1.43 0 0 0-.589-.68q-.396-.234-1.005-.234zm.791.645h.563q.371 0 .609.152a.9.9 0 0 1 .354.454q.118.302.118.753a2.3 2.3 0 0 1-.068.592 1.1 1.1 0 0 1-.196.422.8.8 0 0 1-.334.252 1.3 1.3 0 0 1-.483.082h-.563zm3.743 1.763v1.591h-.79V11.85h2.548v.653H7.896v1.117h1.606v.638z"/>
                                   </svg>
@@ -108,7 +115,7 @@
                     {% elif message.content %}
                         <!-- User Message -->
                         <div id="{{ message.id }}" class="flex justify-end">
-                            <div class="p-3 rounded-lg max-w-xs md:max-w-md bg-[#10a37f] text-white">
+                            <div class="p-3 rounded-lg max-w-s bg-[#10a37f] text-white">
                                 {{ message.content | convert_markdown | safe }}
                             </div>
                         </div>
@@ -139,15 +146,15 @@
             </div>
         </div>
         <!-- Chat Input Form (floating at the bottom) -->
-        <div class="bg-gray-900 p-4 border-t border-gray-700">
-            <form id="chat-form" class="flex items-center w-full md:w-1/2 mx-auto">
+        <div class="bg-gray-900 p-2 border-t border-gray-700">
+            <form id="chat-form" class="container-lg flex items-center space-x-1">
                 {% csrf_token %}
                 <input type="text" id="message" placeholder="{% trans 'Type a message or use voice...' %}"
-                    class="flex-1 p-3 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-[#10a37f]" required>
-                <button type="button" onclick="startRecording()" class="ml-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-700 transition duration-300">
+                    class="flex-1 p-2 m-0 rounded-lg bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-[#10a37f]" required>
+                <button type="button" onclick="startRecording()" class="btn bg-blue-600 hover:bg-blue-700 transition duration-300">
                     🎤
                 </button>
-                <button type="submit" class="ml-3 px-5 py-2 bg-[#10a37f] text-white rounded-lg hover:bg-[#1a7f64] transition duration-300">
+                <button type="submit" class="btn bg-green-700 text-white hover:bg-green-800 transition duration-300">
                     {% trans "Send" %}
                 </button>
             </form>
@@ -159,25 +166,25 @@
     function toggleSidebar(event) {
         event.stopPropagation();
         const sidebar = document.getElementById('sidebar');
-        const sidebarButton = document.getElementById('toggleButtonSB');
         const headerButton = document.getElementById('toggleButtonHD');
-
         // Toggle sidebar visibility (or use additional classes for a slide effect)
-        if (sidebar.classList.contains('w-0')) {
-            sidebar.classList.remove('w-0');
-            sidebar.classList.add('w-64');
-            sidebar.classList.add('px-3');
-            sidebarButton.classList.remove('hidden');
+        
+        if (sidebar.classList.contains('hidden')) {
+            sidebar.classList.add('lg:flex');
+            sidebar.classList.remove('hidden');
             headerButton.classList.add('hidden');
+            headerButton.classList.add('lg:hidden');
         } else {
-            sidebar.classList.remove('w-64');
-            sidebar.classList.add('w-0');
-            sidebar.classList.remove('px-3');
-            sidebarButton.classList.add('hidden');
+            sidebar.classList.remove('lg:flex');
+            sidebar.classList.add('hidden');
             headerButton.classList.remove('hidden');
+            headerButton.classList.remove('lg:hidden');
         }
-
     }
+
+    document.getElementById("language-select").addEventListener("change", function() {
+        window.location.href = this.value;
+    });
 
     function getCSRFToken() {
         return document.querySelector('[name=csrfmiddlewaretoken]').value;
@@ -309,7 +316,7 @@
             // Append user message
             let userMessageDiv = document.createElement("div");
             userMessageDiv.className = "flex justify-end";
-            userMessageDiv.innerHTML = `<div class="p-3 rounded-lg max-w-xs md:max-w-md bg-[#10a37f] text-white">${userMessage}</div>`;
+            userMessageDiv.innerHTML = `<div class="p-3 rounded-lg max-w-xs bg-[#10a37f] text-white">${userMessage}</div>`;
             chatBox.appendChild(userMessageDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
 

@@ -5,8 +5,8 @@
 {% block content %}
     <div class="flex h-screen bg-gray-900 w-full">
     <!-- Sidebar -->
-    <div id="sidebar" class="w-64 bg-gray-800 px-3 h-screen transition-all duration-300 flex flex-col">
-        <button id="toggleButtonSB" class="my-4 p-2 rounded-circle hover:bg-gray-700 w-min h-min" onclick="toggleSidebar(event)">
+    <div id="sidebar" class="bg-gray-800 px-3 h-screen transition-all duration-300 flex-col hidden w-full lg:flex lg:w-64 absolute lg:static" style="z-index: 1;">
+        <button id="toggleButtonSB" class="my-3 p-2 rounded-circle hover:bg-gray-700 w-min h-min" onclick="toggleSidebar(event)">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" class="bi bi-layout-sidebar" viewBox="0 0 16 16">
                 <path d="M0 3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm5-1v12h9a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zM4 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h2z"/>
               </svg>
@@ -53,6 +53,13 @@
             {% endfor %}
         </div>
 
+        <form class="">
+            <select id="language-select" class="bg-gray-800 text-white px-3 py-2 rounded-lg">
+                <option value="/en" {% if request.LANGUAGE_CODE == 'en' %}selected{% endif %}>English</option>
+                <option value="/ja" {% if request.LANGUAGE_CODE == 'ja' %}selected{% endif %}>日本語</option>
+            </select>
+        </form>
+
         <!-- Profile & Logout -->
         <div class="my-2">
             <div class="dropdown">
@@ -77,6 +84,11 @@
     </div>
         
         <div id="mainContent" class="flex-grow p-5 flex flex-col items-center justify-center h-screen text-center">
+            <button id="toggleButtonHD" class="lg:hidden absolute left-0 top-0 mx-3 my-3 p-2 rounded-circle hover:bg-gray-700" onclick="toggleSidebar(event)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" class="bi bi-layout-sidebar" viewBox="0 0 16 16">
+                    <path d="M0 3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm5-1v12h9a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zM4 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h2z"/>
+                  </svg>
+            </button>
             <h1 class="text-5xl font-bold text-white mb-6">{% trans "Stage-Gate Review" %}</h1>
             
             <form method="post" enctype="multipart/form-data" class="flex flex-col items-center">
@@ -102,25 +114,25 @@
     function toggleSidebar(event) {
         event.stopPropagation();
         const sidebar = document.getElementById('sidebar');
-        const sidebarButton = document.getElementById('toggleButtonSB');
         const headerButton = document.getElementById('toggleButtonHD');
 
         // Toggle sidebar visibility (or use additional classes for a slide effect)
-        if (sidebar.classList.contains('w-0')) {
-            sidebar.classList.remove('w-0');
-            sidebar.classList.add('w-64');
-            sidebar.classList.add('px-3');
-            sidebarButton.classList.remove('hidden');
+        if (sidebar.classList.contains('hidden')) {
+            sidebar.classList.add('lg:flex');
+            sidebar.classList.remove('hidden');
             headerButton.classList.add('hidden');
+            headerButton.classList.add('lg:hidden');
         } else {
-            sidebar.classList.remove('w-64');
-            sidebar.classList.add('w-0');
-            sidebar.classList.remove('px-3');
-            sidebarButton.classList.add('hidden');
+            sidebar.classList.remove('lg:flex');
+            sidebar.classList.add('hidden');
             headerButton.classList.remove('hidden');
+            headerButton.classList.remove('lg:hidden');
         }
-
     }
+
+    document.getElementById("language-select").addEventListener("change", function() {
+        window.location.href = this.value;
+    });
 
     function getCSRFToken() {
         return document.querySelector('[name=csrfmiddlewaretoken]').value;
