@@ -65,7 +65,8 @@
 
   <script>
     document.getElementById("language-select").addEventListener("change", function() {
-        window.location.href = this.value;
+        let selectedLang = this.value; // "/en" or "/ja"
+        window.location.href = selectedLang + '/register';
     });
   </script>
   {% endblock %}
