@@ -3,6 +3,12 @@
 {% load chat_extras %}
 
 {% block content %}
+<form class="absolute top-0 right-0 m-4">
+  <select id="language-select" class="bg-gray-800 text-white px-3 py-2 rounded-lg">
+      <option value="/en" {% if request.LANGUAGE_CODE == 'en' %}selected{% endif %}>English</option>
+      <option value="/ja" {% if request.LANGUAGE_CODE == 'ja' %}selected{% endif %}>日本語</option>
+  </select>
+</form>
   <div class="w-full max-w-md">
     <div class="bg-gray-800 shadow-md rounded-lg p-8 text-white">
       <h2 class="text-2xl font-bold mb-6 text-center">{% trans "Login" %}</h2>
@@ -39,4 +45,11 @@
       </p>
     </div>
   </div>
+
+  <script>
+    document.getElementById("language-select").addEventListener("change", function() {
+        window.location.href = this.value;
+    });
+  </script>
   {% endblock %}
+
